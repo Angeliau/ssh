@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 导入dtd约束 -->
+<!DOCTYPE hibernate-configuration PUBLIC
+	"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+	"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+  <session-factory>
+  	<!-- 数据库连接信息在spring中配置 -->
+  	
+    <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+    <property name="hibernate.show_sql">true</property>
+    <property name="hibernate.format_sql">false</property>
+    <property name="hibernate.hbm2ddl.auto">update</property>
+    
+    <!--设置此值在SSH整合时会报异常-->
+    <!-- <property name="hibernate.current_session_context_class">thread</property> -->
+    <!-- 异常信息如下,解决方案见下,具体原因见readme.txt
+    /** 不能在没有活动的事务中刷新session
+     *
+	 * HTTP Status 500 - getFlushMode is not valid without active transaction; 
+	 * nested exception is org.hibernate.HibernateException: 
+	 * getFlushMode is not valid without active transaction
+	 *
+	 * 解决方法：(1)首先查看自己有没有配置开启事务
+	 * 若开启了事务，还是出错,下一步
+	 *  (2) hibernate3.x及以上的版本可以直接注释掉这行代码，或者删除也行
+	 *  (3) 或者标签值thread改成 : org.springframework.orm.hibernate5.SpringSessionContext 
+	 * 
+	 * 错误原因:
+	 * 我们知道的是，hibernate中事务是需要在dao执行sql相关语句时来手动开启的，
+	 * 然后底层实现代码时由getCurrentSession得到的session中可以得到transaction，所以可以正常运行
+	 * 而spring中事务是在配置文件中配置自动开启，因为由getCurrentSession得到的session中是当前线程的session，
+	 * 但是当前线程中没有开启事务的代码，所以不能获取transaction.然而spring+hibernate整合必须要有活动的事务才能执行dao中的方法
+	 * 
+	 * 解决思路：
+     * 因为我们把sessionFactory的产生放在spring配置文件中，即让服务器启动时就创建这个对象，
+     * 这样的话它就被存在一个上下文环境中，即在SpringSessionContext中保存
+     * 所以我们要把绑定当前线程session改成绑定这个spring上下文环境，即设置为由spring环境管理(因为事务aop也是在spring中),
+     * 这时spring中的事务配置才会起作用(当然,以前是thread上下文环境的session,而事务托管在spring上下文中,当然spring无法管理到thread上下文的session的事务）
+	 * thread改为下面的值即可.
+	 */ -->
+        	
+    <property name="hibernate.current_session_context_class">org.springframework.orm.hibernate5.SpringSessionContext</property>
+    
+    <mapping resource="cn/bin/entity/User.hbm.xml"/>
+  </session-factory>
+</hibernate-configuration>
